@@ -8,6 +8,17 @@
               <v-card-title primary-title>
                 <div>{{ data.questionText }}</div>
               </v-card-title>
+              <v-card-text v-if="data.choices.length">
+                <v-radio-group v-model="vote">
+                  <v-radio
+                    v-for="choice in data.choices"
+                    :key="choice.id"
+                    :label="choice.choiceText + '投票数：' + choice.votes"
+                    :value="choice.id">
+                  </v-radio>
+                </v-radio-group>
+                <v-btn @click="doVote" color="success" :disabled="!voteEnable(data.choices)">投票</v-btn>
+              </v-card-text>
               <v-card-text>
                 <div>{{ data.pubDate|printDate }}</div>
               </v-card-text>
@@ -27,14 +38,29 @@ export default {
 
   data () {
     return {
+      vote: null,
       questions: [],
     }
   },
   methods: {
     fetchData () {
-      axios.get('http://localhost:8000/api/1.0/questions/').then(res => {
+      axios.get(`${process.env.API_ENDPOINT}questions/`).then(res => {
         this.questions = res.data.results
       })
+    },
+    doVote () {
+      if (!this.vote) {
+        return
+      }
+      axios.post(`${process.env.API_ENDPOINT}choices/${this.vote}/vote/`).then(res => {
+        this.fetchData()
+      })
+    },
+    voteEnable (choices) {
+      if (!this.vote) {
+        return false // radioの選択がない場合は当然false
+      }
+      return choices.some(x => x.id === this.vote) // 選択されたidが選択肢の中に含まれていればture
     },
   },
   mounted () {
